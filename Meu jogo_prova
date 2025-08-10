@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Caminho da Luz - Jogo Cristão</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden; height: 100%;
+      background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #90EE90 100%);
+      font-family: Arial, sans-serif;
+      display: flex; justify-content: center; align-items: center;
+      flex-direction: column; user-select: none;
+      touch-action: none;
+    }
+    
+    #gameTitle {
+      font-size: clamp(24px, 8vw, 48px); 
+      font-weight: bold; color: #4682B4;
+      margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      z-index: 3; text-align: center;
+    }
+    
+    #gameCanvas {
+      display: block; position: absolute; top: 0; left: 0; z-index: 0;
+      touch-action: none;
+    }
+    
+    #startBtn {
+      padding: clamp(10px, 3vw, 15px) clamp(20px, 6vw, 30px); 
+      font-size: clamp(16px, 4vw, 22px); 
+      background: #4682B4; color: white;
+      border: none; border-radius: 8px; cursor: pointer; z-index: 3;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      touch-action: manipulation;
+    }
+    
+    #startBtn:hover, #startBtn:active {
+      background: #5A9BD4;
+      transform: scale(1.05);
+    }
+    
+    #hud {
+      position: absolute; 
+      top: clamp(10px, 2vh, 20px); 
+      right: clamp(10px, 2vw, 20px); 
+      background: rgba(255,255,255,0.9);
+      padding: clamp(12px, 3vw, 20px); 
+      border-radius: clamp(8px, 2vw, 15px); 
+      font-size: clamp(14px, 3.5vw, 18px); 
+      color: #333;
+      z-index: 2; line-height: 1.5;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+      max-width: 55vw;
+      min-width: 180px;
+    }
+    
+    #levelIndicator {
+      position: absolute; 
+      top: clamp(10px, 2vh, 20px); 
+      left: clamp(10px, 2vw, 20px);
+      background: rgba(255,255,255,0.9);
+      padding: clamp(12px, 3vw, 18px) clamp(15px, 4vw, 25px); 
+      border-radius: clamp(8px, 2vw, 15px);
+      font-size: clamp(12px, 3vw, 18px); 
+      color: #333; font-weight: bold;
+      z-index: 2; box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+      max-width: 55vw;
+      min-width: 200px;
+    }
+
+    #verseOverlay {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.95);
+      padding: clamp(15px, 4vw, 30px); 
+      border-radius: clamp(8px, 2vw, 12px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      font-size: clamp(14px, 3.5vw, 20px); 
+      line-height: 1.6; white-space: pre-wrap;
+      display: none; z-index: 3; text-align: center;
+      max-width: 90vw; max-height: 80vh;
+      color: #333; overflow-y: auto;
+    }
+
+    #resultsTable {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(70, 130, 180, 0.95), rgba(100, 149, 237, 0.95));
+      padding: clamp(15px, 4vw, 30px); 
+      border-radius: clamp(10px, 3vw, 20px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: none; z-index: 3; color: white;
+      max-width: 95vw; max-height: 85vh;
+      overflow-y: auto; border: 2px solid #4682B4;
+    }
+
+    #resultsTable h2 {
+      text-align: center; color: white; 
+      margin-bottom: clamp(15px, 4vw, 25px);
+      font-size: clamp(18px, 5vw, 28px); 
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    #resultsTable .stats-grid {
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: clamp(10px, 3vw, 20px); 
+      margin-bottom: clamp(15px, 4vw, 25px);
+    }
+
+    #resultsTable .stat-card {
+      background: rgba(255,255,255,0.15); 
+      padding: clamp(10px, 3vw, 15px);
+      border-radius: clamp(8px, 2vw, 12px); 
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+
+    #resultsTable .stat-value {
+      font-size: clamp(16px, 4vw, 24px); 
+      font-weight: bold; margin: 5px 0;
+      color: #FFD700;
+    }
+
+    #resultsTable .stat-label {
+      font-size: clamp(10px, 2.5vw, 14px); 
+      opacity: 0.9;
+    }
+
+    #closeResults {
+      display: block; 
+      margin: clamp(15px, 4vw, 20px) auto 0; 
+      padding: clamp(8px, 2vw, 12px) clamp(15px, 4vw, 25px);
+      background: linear-gradient(45deg, #FFD700, #FFA500); 
+      color: #333;
+      border: none; 
+      border-radius: clamp(15px, 4vw, 25px); 
+      cursor: pointer;
+      font-weight: bold; 
+      font-size: clamp(12px, 3vw, 16px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+      touch-action: manipulation;
+    }
+
+    #closeResults:hover, #closeResults:active {
+      transform: scale(1.05);
+    }
+
+    #mobileInstructions {
+      position: absolute; 
+      bottom: clamp(10px, 3vh, 30px); 
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
+      border-radius: clamp(8px, 2vw, 15px);
+      font-size: clamp(10px, 2.5vw, 14px);
+      color: #333; text-align: center;
+      z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 90vw;
+      display: none;
+    }
+    @media (max-width: 768px) {
+      #hud, #levelIndicator {
+        font-size: 14px;
+        padding: 12px 16px;
+        max-width: 50vw;
+        min-width: 160px;
+      }
+      
+      #hud div, #levelIndicator {
+        margin: 3px 0;
+      }
+      
+      #mobileInstructions {
+        display: block;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #hud {
+        top: 70px;
+        right: 8px;
+        font-size: 12px;
+        padding: 10px 14px;
+        max-width: 45vw;
+        min-width: 140px;
+      }
+      
+      #levelIndicator {
+        font-size: 11px;
+        padding: 10px 14px;
+        max-width: 50vw;
+        min-width: 150px;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      #gameTitle {
+        font-size: clamp(20px, 6vh, 36px);
+        margin-bottom: 10px;
+      }
+      
+      #startBtn {
+        padding: 8px 20px;
+        font-size: clamp(14px, 3vh, 18px);
+      }
+      
+      #hud, #levelIndicator {
+        top: 5px;
+        font-size: clamp(8px, 2vh, 12px);
+        padding: 4px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameTitle">Caminho da Luz✨</div>
+  <button id="startBtn">Iniciar Jogo</button>
+  <canvas id="gameCanvas"></canvas>
+  <div id="hud">
+    <div id="score">✨ Pontuação: 0</div>
+    <div id="time">⏱️ Tempo: 0s</div>
+    <div id="record">🏆 Recorde: 0</div>
+  </div>
+  <div id="levelIndicator">📊 Nível: 1 | Velocidade: 1.0x</div>
+  <div id="verseOverlay"></div>
+  
+  <div id="mobileInstructions">
+    📱 Toque na tela para pular | Toque e segure para se abaixar
+  </div>
+  
+  <div id="resultsTable">
+    <h2>🏆 Resultados da Partida</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="finalScore">0</div>
+        <div class="stat-label">✨ Pontuação Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="finalTime">0s</div>
+        <div class="stat-label">⏱️ Tempo Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="maxLevel">1</div>
+        <div class="stat-label">🚀 Nível Máximo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="maxSpeed">1.0x</div>
+        <div class="stat-label">⚡ Velocidade Máxima</div>
+      </div>
+    </div>
+    <div id="finalStats"></div>
+    <button id="closeResults">🎮 Jogar Novamente</button>
+  </div>
+
+  <script>
+    
+    const config = {
+      groundColor: "#228B22",
+      playerColor: "#191970", 
+      gravity: 0.6,
+      jumpStrength: -16,
+      obstacleSpeedStart: 6,
+      speedIncreaseInterval: 15,
+      groundHeight: 60,
+      obstacleSize: 30,
+      speedIncreaseTime: 15000 
+    };
+
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     ('ontouchstart' in window) || 
+                     (navigator.maxTouchPoints > 0);
+
+    
+    const levels = [
+      { level: 1, speed: 1.0, name: "Iniciante" },
+      { level: 2, speed: 1.5, name: "Aprendiz" },
+      { level: 3, speed: 2.0, name: "Discípulo" },
+      { level: 4, speed: 2.5, name: "Servo" },
+      { level: 5, speed: 3.0, name: "Ministro" },
+      { level: 6, speed: 3.5, name: "Pastor" },
+      { level: 7, speed: 4.0, name: "Evangelista" },
+      { level: 8, speed: 4.5, name: "Missionário" },
+      { level: 9, speed: 5.0, name: "Apóstolo" },
+      { level: 10, speed: 5.5, name: "Luz do Mundo" }
+    ];
+
+    
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const scoreDiv = document.getElementById("score");
+    const timeDiv = document.getElementById("time");
+    const recordDiv = document.getElementById("record");
+    const levelIndicatorDiv = document.getElementById("levelIndicator");
+    const verseOverlay = document.getElementById("verseOverlay");
+    const gameTitle = document.getElementById("gameTitle");
+    const resultsTable = document.getElementById("resultsTable");
+    const finalStats = document.getElementById("finalStats");
+    const closeResults = document.getElementById("closeResults");
+    const mobileInstructions = document.getElementById("mobileInstructions");
+
+
+    let gameRunning = false;
+    let score = 0;
+    let time = 0;
+    let record = localStorage.getItem("record") || 0;
+    let lastObstacleTime = 0;
+    let startTime = 0;
+    let lastSpeedIncrease = 0;
+    let obstacleSpeed = config.obstacleSpeedStart;
+    let currentLevel = 1;
+    let speedMultiplier = 1;
+    let isCrouching = false;
+    let levelStats = [];
+    let currentLevelStartTime = 0;
+    let currentLevelScore = 0;
+    let jumpBlocked = false;
+
+    const ground = { x: 0, y: 0, width: 0, height: config.groundHeight };
+    const player = { x: 100, y: 0, width: 40, height: 40, vy: 0, grounded: false };
+
+    let obstacles = [];
+    let gruposContados = new Set();
+    let mountains = [];
+    let clouds = [];
+
+    
+    let touchStartTime = 0;
+    let isTouchHeld = false;
+    let touchTimer = null;
+
+    const verses = [
+      { text: '✨ "Eu sou a luz do mundo; quem me segue não andará em trevas" - João 8:12 ✨', color: "#DC143C" },
+      { text: '✨ "Eu sou o caminho, a verdade e a vida" - João 14:6 ✨', color: "#8A2BE2" },
+      { text: '✨ "Tudo posso naquele que me fortalece" - Filipenses 4:13 ✨', color: "#4169E1" },
+      { text: '✨ "O Senhor é o meu pastor, nada me faltará" - Salmos 23:1 ✨', color: "#228B22" },
+      { text: '✨ "Se Deus é por nós, quem será contra nós?" - Romanos 8:31 ✨', color: "#FF4500" },
+      { text: '✨ "Entregue o seu caminho ao Senhor" - Salmos 37:5 ✨', color: "#2F4F4F" }
+    ];
+
+  
+    function createLandscape() {
+      mountains = [];
+      clouds = [];
+      
+      
+      for (let i = 0; i < 8; i++) {
+        mountains.push({
+          x: i * (canvas.width / 6),
+          y: canvas.height * 0.3 + Math.random() * 100,
+          width: canvas.width / 4 + Math.random() * 100,
+          height: canvas.height * 0.4 + Math.random() * 100,
+          color: `rgba(${100 + Math.random() * 50}, ${150 + Math.random() * 50}, ${100 + Math.random() * 50}, 0.7)`
+        });
+      }
+      
+      
+      for (let i = 0; i < 12; i++) {
+        clouds.push({
+          x: Math.random() * canvas.width * 1.5,
+          y: Math.random() * canvas.height * 0.3,
+          size: 30 + Math.random() * 40,
+          speed: 0.5 + Math.random() * 1,
+          opacity: 0.6 + Math.random() * 0.4
+        });
+      }
+    }
+
+  
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ground.width = canvas.width;
+      ground.y = canvas.height - ground.height;
+      if (!gameRunning) player.y = ground.y - player.height;
+      
+      
+      if (isMobile) {
+        config.groundHeight = Math.max(40, canvas.height * 0.08);
+        player.width = Math.max(30, canvas.width * 0.06);
+        player.height = Math.max(30, canvas.width * 0.06);
+        config.obstacleSize = Math.max(20, canvas.width * 0.05);
+      }
+      
+      createLandscape();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    
+    function drawLandscape() {
+      
+      mountains.forEach(mountain => {
+        ctx.fillStyle = mountain.color;
+        ctx.beginPath();
+        ctx.moveTo(mountain.x, canvas.height);
+        ctx.lineTo(mountain.x + mountain.width / 2, mountain.y);
+        ctx.lineTo(mountain.x + mountain.width, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+      });
+      
+    
+      clouds.forEach(cloud => {
+        ctx.globalAlpha = cloud.opacity;
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+        ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(cloud.x + cloud.size * 1.2, cloud.y, cloud.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function updateLandscape() {
+  
+      clouds.forEach(cloud => {
+        cloud.x -= cloud.speed;
+        if (cloud.x < -cloud.size * 2) {
+          cloud.x = canvas.width + cloud.size;
+        }
+      });
+    }
+
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    }
+    
+    function drawPlayer() {
+      
+      const centerX = player.x + player.width / 2;
+      const baseY = player.y + player.height;
+      
+      const heightScale = isCrouching ? 0.5 : 1;
+      const mountainHeight = player.height * heightScale;
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, baseY - mountainHeight); 
+      ctx.lineTo(player.x + player.width * 0.1, baseY); 
+      ctx.lineTo(player.x + player.width * 0.9, baseY);
+      ctx.closePath();
+      
+      
+      ctx.fillStyle = "#696969"; 
+      ctx.fill();
+      
+
+      ctx.strokeStyle = "#2F4F4F"; 
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+    
+      ctx.beginPath();
+      ctx.moveTo(centerX, baseY - mountainHeight); 
+      ctx.lineTo(centerX + player.width * 0.15, baseY - mountainHeight * 0.6); 
+      ctx.lineTo(centerX + player.width * 0.3, baseY);
+      ctx.lineTo(centerX, baseY - mountainHeight * 0.3);
+      ctx.closePath();
+      ctx.fillStyle = "#A9A9A9";
+      ctx.fill();
+      
+      
+      if (!isCrouching) {
+        ctx.beginPath();
+        ctx.moveTo(centerX, baseY - mountainHeight); 
+        ctx.lineTo(centerX - player.width * 0.1, baseY - mountainHeight * 0.8);
+        ctx.lineTo(centerX + player.width * 0.1, baseY - mountainHeight * 0.8);
+        ctx.closePath();
+        ctx.fillStyle = "#FFFAFA"; 
+        ctx.fill();
+      }
+    }
+    
+    function drawGround() {
+      drawRect(ground.x, ground.y, ground.width, ground.height, config.groundColor);
+    }
+    
+    function drawObstacles() {
+      obstacles.forEach(ob => {
+        
+        ctx.fillStyle = ob.color;
+        ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+        
+      
+        ctx.strokeStyle = ob.color === "#DC143C" ? "#8B0000" : 
+                         ob.color === "#8A2BE2" ? "#4B0082" :
+                         ob.color === "#4169E1" ? "#191970" :
+                         ob.color === "#228B22" ? "#006400" :
+                         ob.color === "#FF4500" ? "#8B0000" : "#000000";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ob.x, ob.y, ob.width, ob.height);
+        
+        
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillRect(ob.x + 2, ob.y + 2, 8, 8);
+      });
+    }
+    
+    function checkForAirObstacles() {
+      const playerZone = player.x + player.width + 200; 
+      
+      for (let ob of obstacles) {
+        const isAirObstacle = ob.y < ground.y - 30;
+        
+        if (isAirObstacle && ob.x > player.x && ob.x < playerZone) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+  
+    function updateLevel() {
+      const newLevel = Math.min(Math.floor(speedMultiplier * 2), levels.length);
+      if (newLevel > currentLevel) {
+        
+        if (currentLevel > 0) {
+          levelStats.push({
+            level: currentLevel,
+            speed: levels[currentLevel - 1].speed,
+            time: Math.floor((Date.now() - currentLevelStartTime) / 1000),
+            points: score - currentLevelScore
+          });
+        }
+        
+        currentLevel = newLevel;
+        currentLevelStartTime = Date.now();
+        currentLevelScore = score;
+      }
+    }
+
+    
+    function updateJumpBlock() {
+      jumpBlocked = checkForAirObstacles();
+    }
+
+  
+    function updateHUD() {
+      scoreDiv.textContent = `✨ Pontuação: ${score}`;
+      timeDiv.textContent = `⏱️ Tempo: ${time}s`;
+      recordDiv.textContent = `🏆 Recorde: ${record}`;
+      
+      const levelName = currentLevel <= levels.length ? levels[currentLevel - 1].name : "Mestre";
+      const jumpStatus = jumpBlocked ? " | 🚫 Pulo Bloqueado" : "";
+      levelIndicatorDiv.textContent = `📊 Nível ${currentLevel}: ${levelName} | Velocidade: ${speedMultiplier.toFixed(1)}x${jumpStatus}`;
+    }
+    
+    function updatePlayer() {
+      player.vy += config.gravity;
+      player.y += player.vy;
+      if (player.y + player.height >= ground.y) {
+        player.y = ground.y - player.height;
+        player.vy = 0;
+        player.grounded = true;
+      } else player.grounded = false;
+    }
+    
+    function spawnObstacle() {
+      const qtd = Math.floor(Math.random() * 2) + 2;
+      const verseObj = verses[Math.floor(Math.random() * verses.length)];
+      const tipo = Math.random() < 0.5 ? "ground" : "air";
+      const groupId = Date.now() + "-" + Math.floor(Math.random() * 1000);
+      for (let i = 0; i < qtd; i++) {
+        const offsetY = tipo === "air" ? 20 : 0;
+        obstacles.push({
+          x: canvas.width + i * 35,
+          y: ground.y - config.obstacleSize - offsetY,
+          width: config.obstacleSize,
+          height: config.obstacleSize,
+          color: verseObj.color,
+          verse: verseObj.text,
+          groupId
+        });
+      }
+    }
+    
+    function updateObstacles() {
+      obstacles.forEach(ob => ob.x -= obstacleSpeed);
+      const grupos = {};
+      obstacles.forEach(ob => {
+        if (!grupos[ob.groupId]) grupos[ob.groupId] = [];
+        grupos[ob.groupId].push(ob);
+      });
+      for (const groupId in grupos) {
+        if (gruposContados.has(groupId)) continue;
+        const blocoMaisDireita = grupos[groupId].reduce((max, ob) => ob.x > max.x ? ob : max);
+        if (blocoMaisDireita.x + blocoMaisDireita.width < player.x) {
+          score++;
+          gruposContados.add(groupId);
+          if (score % config.speedIncreaseInterval === 0) obstacleSpeed += 0.5;
+        }
+      }
+      obstacles = obstacles.filter(ob => ob.x + ob.width > 0);
+      gruposContados.forEach(id => {
+        if (!obstacles.some(ob => ob.groupId === id)) gruposContados.delete(id);
+      });
+    }
+
+    
+    function updateSpeed() {
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - startTime;
+      
+      if (elapsedTime - lastSpeedIncrease >= config.speedIncreaseTime) {
+        obstacleSpeed += 1;
+        speedMultiplier = obstacleSpeed / config.obstacleSpeedStart;
+        lastSpeedIncrease += config.speedIncreaseTime;
+        updateLevel();
+      }
+    }
+
+    function checkCollision() {
+      for (let ob of obstacles) {
+        const isAirObstacle = ob.y < ground.y - 30;
+        if (isAirObstacle && isCrouching) continue;
+        if (player.x < ob.x + ob.width &&
+            player.x + player.width > ob.x &&
+            player.y < ob.y + ob.height &&
+            player.y + player.height > ob.y) {
+          showGameOver(ob.verse);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    
+    function showResults() {
+      
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('finalTime').textContent = `${time}s`;
+      document.getElementById('maxLevel').textContent = `${currentLevel} - ${currentLevel <= levels.length ? levels[currentLevel - 1].name : 'Mestre'}`;
+      document.getElementById('maxSpeed').textContent = `${speedMultiplier.toFixed(1)}x`;
+
+      finalStats.innerHTML = `
+        ${score > record ? '<p style="color: #FFD700; font-weight: bold; text-align: center; font-size: 18px; margin-bottom: 15px;">🎉 NOVO RECORDE PESSOAL! 🎉</p>' : ''}
+        <div style="text-align: center; opacity: 0.9; font-size: 16px;">
+          <p>Continue praticando para alcançar níveis mais altos!</p>
+          <p>Que a luz do Senhor ilumine seu caminho! 🙏</p>
+        </div>
+      `;
+
+      resultsTable.style.display = "block";
+    }
+
+  
+    function showGameOver(verseText) {
+      gameRunning = false;
+      verseOverlay.textContent = verseText;
+      verseOverlay.style.display = "block";
+      
+      if (score > record) {
+        record = score;
+        localStorage.setItem("record", record);
+      }
+      
+      setTimeout(() => {
+        verseOverlay.style.display = "none";
+        showResults();
+      }, 3000);
+    }
+
+
+    function handleJump() {
+      if (player.grounded && !isCrouching && !jumpBlocked) {
+        player.vy = config.jumpStrength;
+      }
+    }
+
+    function handleCrouchStart() {
+      if (player.grounded) {
+        isCrouching = true;
+        const originalHeight = 40;
+        player.height = originalHeight / 2;
+        player.y = ground.y - player.height;
+      }
+    }
+
+    function handleCrouchEnd() {
+      isCrouching = false;
+      jumpBlocked = false;
+      const originalHeight = 40;
+      player.height = originalHeight;
+      player.y = ground.y - player.height;
+    }
+
+    
+    function loop() {
+      if (!gameRunning) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      updateLandscape();
+      drawLandscape();
+      drawGround();
+      drawPlayer();
+      drawObstacles();
+      updatePlayer();
+      updateObstacles();
+      updateSpeed();
+      updateJumpBlock();
+
+      const currentTime = Date.now();
+      if (currentTime - lastObstacleTime > 1500) {
+        spawnObstacle();
+        lastObstacleTime = currentTime;
+      }
+      time = Math.floor((currentTime - startTime) / 1000);
+      updateHUD();
+
+      if (!checkCollision()) requestAnimationFrame(loop);
+    }
+
+  
+    document.addEventListener("keydown", e => {
+      if (!gameRunning) return;
+      
+      if ((e.code === "Space" || e.code === "ArrowUp")) {
+        e.preventDefault();
+        handleJump();
+      }
+      if ((e.code === "ArrowDown" || e.code === "ControlLeft")) {
+        e.preventDefault();
+        handleCrouchStart();
+      }
+    });
+    
+    document.addEventListener("keyup", e => {
+      if (!gameRunning) return;
+      
+      if (e.code === "ArrowDown" || e.code === "ControlLeft") {
+        e.preventDefault();
+        handleCrouchEnd();
+      }
+    });
+
+    
+    canvas.addEventListener("touchstart", e => {
+      if (!gameRunning) return;
+      
+      e.preventDefault();
+      touchStartTime = Date.now();
+      isTouchHeld = true;
+      
+  
+      touchTimer = setTimeout(() => {
+        if (isTouchHeld) {
+          handleCrouchStart();
+        }
+      }, 200); 
+    });
+
+    canvas.addEventListener("touchend", e => {
+      if (!gameRunning) return;
+      
+      e.preventDefault();
+      const touchDuration = Date.now() - touchStartTime;
+      isTouchHeld = false;
+      
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+      
+    
+      if (touchDuration < 200) {
+        handleJump();
+      }
+      
+    
+      if (isCrouching) {
+        handleCrouchEnd();
+      }
+    });
+
+    canvas.addEventListener("touchcancel", e => {
+      e.preventDefault();
+      isTouchHeld = false;
+      
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+      
+      if (isCrouching) {
+        handleCrouchEnd();
+      }
+    });
+    document.addEventListener("touchstart", e => {
+      if (e.target === canvas) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener("touchmove", e => {
+      if (e.target === canvas) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener("touchend", e => {
+      if (e.target === canvas) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+
+    startBtn.addEventListener("click", () => {
+      startBtn.style.display = "none";
+      gameTitle.style.display = "none";
+      verseOverlay.style.display = "none";
+      resultsTable.style.display = "none";
+      mobileInstructions.style.display = "none";
+      
+      gameRunning = true;
+      score = 0;
+      time = 0;
+      obstacles = [];
+      gruposContados.clear();
+      levelStats = [];
+      currentLevel = 1;
+      currentLevelStartTime = Date.now();
+      currentLevelScore = 0;
+      player.y = ground.y - player.height;
+      player.vy = 0;
+      obstacleSpeed = config.obstacleSpeedStart;
+      speedMultiplier = 1;
+      isCrouching = false;
+      jumpBlocked = false;
+      isTouchHeld = false;
+      startTime = Date.now();
+      lastSpeedIncrease = 0;
+      lastObstacleTime = Date.now();
+      
+      if (touchTimer) {
+        clearTimeout(touchTimer);
+        touchTimer = null;
+      }
+      
+      loop();
+    });
+
+    closeResults.addEventListener("click", () => {
+      resultsTable.style.display = "none";
+      startBtn.style.display = "block";
+      gameTitle.style.display = "block";
+      if (isMobile) {
+        mobileInstructions.style.display = "block";
+      }
+    });
+
+    
+    if (isMobile) {
+      mobileInstructions.style.display = "block";
+    }
+    updateHUD();
+  </script>
+</body>
+</html>
